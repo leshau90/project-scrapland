@@ -6,6 +6,7 @@ const cheerio = require('cheerio')
 const splitTitleRegex1 = [/carib$/i, /1pon$/i, /heyzo$/i, /paco$/i, /s-cute$/i, /heydouga$/i,
     /sdelta$/i, /本生素人TV$/i, /金8天国$/i, /人妻斬り$/i, /エッチな4610$/i, /女体のしんぴ$/i,
     /Legs-Japan$/i, /エッチな0930$/i, /Nyoshin$/i, /Fellatio-Japan$/i, /XXX-AV$/i, /Uralesbian$/i, /熟女倶楽部$/i]
+const splitTitleRegex2 = [/Tokyo$/i,/10mu$/i]
 
 //second iterations modfied_at should be greater than 1615574402204
 
@@ -16,8 +17,9 @@ const url = 'mongodb://192.168.43.16:27017';
 const dbName = 'info';
 
 let CLIENT = null
-let MAXPAGE = 100
-let CURRENT = 14
+let MAXPAGE = 5550
+let CURRENT = {counter: 4200}
+
 let LOOPER = null
 
 // Use connect method to connect to the server
@@ -34,9 +36,18 @@ MongoClient.connect(url, function (err, client) {
     //     client.close()
     // }
 
-
+    
     //run it
-    setTimeout(() => requestPageAndAppend(client), 1000 + Math.floor(Math.random() * 10000))
+    
+    setTimeout(() => requestPageAndAppend(client,'t-01'), 2000)
+    setTimeout(() => requestPageAndAppend(client,'t-02'), 1750)
+    setTimeout(() => requestPageAndAppend(client,'t-03'), 1250)
+    setTimeout(() => requestPageAndAppend(client,'t-04'), 850)
+    setTimeout(() => requestPageAndAppend(client,'t-05'), 550)
+    setTimeout(() => requestPageAndAppend(client,'t-06'), 350)
+    setTimeout(() => requestPageAndAppend(client,'t-07'), 2350)
+    
+    
     // LOOPER = setInterval(() => {
     //     if (CURRENT > MAXPAGE) {
     //         clearInterval(LOOPER)
@@ -63,28 +74,28 @@ MongoClient.connect(url, function (err, client) {
 
 
 
-async function requestPageAndAppend(client) {
+async function requestPageAndAppend(client,id) {
     let nextR = 1000 + Math.floor(Math.random() * 5000);
 
 
-    let response = await fetch(`https://popjav.tv/page/${CURRENT}`, {
+    let response = await fetch(`https://popjav.tv/page/${CURRENT.counter}`, {
         "headers": {
             "upgrade-insecure-requests": "1"
         },
-        "referrer": `https://popjav.tv/page/${CURRENT - 1}`,
+        "referrer": `https://popjav.tv/page/${CURRENT.counter - 1}`,
         "referrerPolicy": "strict-origin-when-cross-origin",
         "body": null,
         "method": "GET",
         "mode": "cors"
     })
-    if (CURRENT < MAXPAGE) {
-        console.log('page:', CURRENT, 'status:', response.status, 'next page after', nextR/1000, 'sec')
-        setTimeout(() => requestPageAndAppend(client), nextR)
+    if (CURRENT.counter < MAXPAGE) {
+        console.log(id,': page:', CURRENT.counter, 'status:', response.status, 'next page after', nextR/1000, 'sec')
+        setTimeout(() => requestPageAndAppend(client,id), nextR)
     } else {
-        console.log('closing the connection..aproximately after 10 secs, last page:',CURRENT, 'status', response.status)
+        console.log(id,': closing the connection...aproximately after 10 secs, last page:',CURRENT.counter, 'status', response.status)
         setTimeout(() => client.close(), 10000)
     }
-    CURRENT++    
+    CURRENT.counter++    
     let selector = cheerio.load(await response.text())
     selector('li.video a').each((i, vid) => {
         let title = selector(vid).attr('title')
@@ -112,16 +123,17 @@ async function requestPageAndAppend(client) {
             if (sameLink < 1) {
                 //fixing code
                 if (splitTitleRegex1.some(rx => rx.test(doc.popjav_code))) {
-                    doc.popjav_code = split1Fixer(doc)
-                    console.log(`code is now ${doc.popjav_code}`)
-                } else if (/10mu/i.test(doc.popjav_code)) {
-                    doc.popjav_code = split2Fixer(doc)
-                    console.log(`code is now ${doc.popjav_code}`)
-                } else console.log('no change in pop code')
+                    doc.popjav_code = split1Fixer(doc).popjav_code
+                    // console.log(`code is now ${doc.popjav_code}`)
+                } else if (splitTitleRegex2.some(rx => rx.test(doc.popjav_code))) {
+                    doc.popjav_code = split2Fixer(doc).popjav_code
+                    // console.log(`code is now ${doc.popjav_code}`)
+                } 
+                // else console.log('no change in pop code',doc.popjav_code)
 
                 let dateStamp = new Date().toLocaleString()
                 db.collection('vid').insertOne(doc,
-                    (err, result) => console.log(`adding ${doc.popjav_code} link: ${doc.popjav_link} `, 'at', dateStamp)
+                    (err, result) => console.log('ADDED', doc.popjav_code, 'link:', doc.popjav_link , 'at', dateStamp)
                 )
             }
             // else console.log(`NOT WRITING ${doc.popjav_code} with ${doc.popjav_link} already in db`)

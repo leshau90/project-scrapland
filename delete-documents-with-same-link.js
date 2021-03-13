@@ -27,30 +27,13 @@ MongoClient.connect(url, { useUnifiedTopology: true }, function (err, client) {
             .forEach(ddoc => {
                 collection.deleteOne({ _id: ddoc._id }, (err, res) => {
                     if (err) console.log(`cannot delete  ${ddoc._id} with id ${ddoc.popjav_link}`)
-                    else console.log(`DELETED ${ddoc._id} with id ${ddoc.popjav_link}`)
+                    else console.log(`DELETED ${ddoc._id} with link: ${ddoc.popjav_link}`)
                 })
             })
     }
     )
 
 });
-//for heyz,1pon,paco carib s-cute
-function split1Fixer(doc) {
-    let add = doc.title.split(' ').slice(1, 3)
-    return { popjav_code: `${doc.popjav_code.trim()} ${add[0]}` }
-}
-
-//for 10 mu
-function split2Fixer(doc) {
-    let add = doc.title.split(' ').slice(1, 3)
-    return { popjav_code: `${doc.popjav_code.trim()} ${add[0]} ${add[1]}` }
-}
-
-//fixing over adding
-function splitNormalFix(doc) {
-    let fix = doc.popjav_code.trim().split(' ')
-    return { popjav_code: `${fix[0]} ${fix[1]}` }
-}
 //fix if the number is copied multiple times
 // console.log(doc.popjav_code, '==>',`${doc.popjav_code.trim()} ${add[0]}`)
         // let codeArr = doc.popjav_code.split(' ')
